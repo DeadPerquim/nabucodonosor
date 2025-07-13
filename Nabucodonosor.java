@@ -76,7 +76,6 @@ public class Nabucodonosor extends AdvancedRobot {
             travarRadar = true;
             distanciaAlvo = e.getDistance();
             ultimoScan = getTime();
-            alvoAtual = e.getName();
 
             out.println("📡 Alvo travado: " + alvoAtual);
 
@@ -106,14 +105,14 @@ public class Nabucodonosor extends AdvancedRobot {
                 double posXInimigo = getX() + Math.sin(Math.toRadians(e.getBearing() + getHeading())) * e.getDistance();
                 double posYInimigo = getY() + Math.cos(Math.toRadians(e.getBearing() + getHeading())) * e.getDistance();
 
-                double velocidadeTiro = 20 - 3 * potencia;
-                double tempo = e.getDistance() / velocidadeTiro;
+        double velocidadeTiro = 20 - 3 * potencia;
+        double tempo = e.getDistance() / velocidadeTiro;
 
-                double futuroX = posXInimigo + Math.sin(direcaoInimigo) * velocidadeInimigo * tempo;
-                double futuroY = posYInimigo + Math.cos(direcaoInimigo) * velocidadeInimigo * tempo;
+        double futuroX = posXInimigo + Math.sin(direcaoInimigo) * velocidadeInimigo * tempo;
+        double futuroY = posYInimigo + Math.cos(direcaoInimigo) * velocidadeInimigo * tempo;
 
-                double anguloPrevisto = Math.toDegrees(Math.atan2(futuroX - getX(), futuroY - getY()));
-                double ajusteCanhao = normalRelativeAngleDegrees(anguloPrevisto - getGunHeading());
+        double anguloPrevisto = Math.toDegrees(Math.atan2(futuroX - getX(), futuroY - getY()));
+        double ajusteCanhao = normalRelativeAngleDegrees(anguloPrevisto - getGunHeading());
 
                 setTurnGunRight(ajusteCanhao);
                 fire(potencia);
@@ -128,7 +127,6 @@ public class Nabucodonosor extends AdvancedRobot {
         // Recuar ao colidir com outro robô
         setBack(50);
         setTurnRight(45);
-        execute();
     }
 
     public void onRobotDeath(RobotDeathEvent e) {
@@ -143,7 +141,6 @@ public class Nabucodonosor extends AdvancedRobot {
         evitandoParede = true;
         setBack(80);
         setTurnRight(90);
-        execute();
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
