@@ -71,6 +71,8 @@ public class Nabucodonosor extends AdvancedRobot {
             distanciaAlvo = e.getDistance();
             ultimoScan = getTime();
             alvoAtual = e.getName();
+            out.println("📡 Alvo travado: " + alvoAtual);
+
 
             // Calcula ângulos para canhão e radar
             double anguloAbsoluto = getHeading() + e.getBearing();
@@ -107,6 +109,7 @@ public class Nabucodonosor extends AdvancedRobot {
 
                 setTurnGunRight(ajusteCanhao);
                 setColors(Color.red, Color.orange, Color.yellow); // muda a cor ao atirar
+                out.println("🔫 Disparando com potência " + potencia);
                 fire(potencia);
             }
         }
@@ -135,6 +138,7 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
+        out.println("💥 Fui atingido! Iniciando manobra evasiva...");
         setColors(Color.blue, Color.cyan, Color.lightGray); // muda a cor ao ser atingido
         // Reage com zigue-zague evasivo ao ser atingido
         zigZag = !zigZag;
@@ -179,8 +183,9 @@ public class Nabucodonosor extends AdvancedRobot {
         if (evitandoParede) {
             setAhead(80);
         }
-    }public void onWin(WinEvent e) {
+    }
+    public void onWin(WinEvent e) {
+    out.println("🏆 Vitória! O campo de batalha é meu.");
     setColors(Color.green, Color.white, Color.magenta); // muda a cor ao vencer
-}
-
+    }
 }
