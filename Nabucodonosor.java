@@ -2,42 +2,42 @@ package master_t;
 
 import robocode.*;
 import java.awt.Color;
+import java.awt.Graphics2D;
 import static robocode.util.Utils.normalRelativeAngleDegrees;
 
 public class Nabucodonosor extends AdvancedRobot {
 
     // Variáveis de controle
-    private boolean travarRadar = false; // Se o radar deve travar no inimigo atual
-    private double distanciaAlvo = 0; // Distância até o inimigo atual
-    private long ultimoScan = 0; // Tick do último scan
-    private String alvoAtual = null; // Nome do inimigo atual
-    private double larguraArena; // Largura da arena
-    private double alturaArena; // Altura da arena
-    private double margem = 60; // Margem de segurança da parede
-    private boolean evitandoParede = false; // Flag para evasão de parede
-    private final double DISTANCIA_MAXIMA_TIRO = 500; // Distância máxima para atirar
-    private boolean zigZag = false; // Controle do movimento em zigue-zague
+    private boolean travarRadar = false;
+    private double distanciaAlvo = 0;
+    private long ultimoScan = 0;
+    private String alvoAtual = null;
+    private double larguraArena;
+    private double alturaArena;
+    private double margem = 60;
+    private boolean evitandoParede = false;
+    private final double DISTANCIA_MAXIMA_TIRO = 500;
+    private boolean zigZag = false;
+    private double alvoX = -1, alvoY = -1;
+    private long tempoInicio;
 
     public void run() {
-        // Configurações visuais e técnicas
         setColors(Color.black, Color.red, Color.orange);
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
 
-        // Detecta o tamanho da arena
         larguraArena = getBattleFieldWidth();
         alturaArena = getBattleFieldHeight();
+        tempoInicio = getTime();
 
-        buscarAlvo(); // Inicia buscando inimigos
+        buscarAlvo();
 
         while (true) {
-            // Se o alvo não foi visto recentemente, volta para modo de busca
             if (travarRadar && (getTime() - ultimoScan > 30)) {
                 buscarAlvo();
             }
 
             if (travarRadar) {
-                // Movimento em zigue-zague ao redor do inimigo
                 double angulo = normalRelativeAngleDegrees(90 + (distanciaAlvo / 15));
                 if (zigZag) {
                     setTurnRight(angulo);
@@ -47,7 +47,6 @@ public class Nabucodonosor extends AdvancedRobot {
                 setAhead(100);
                 zigZag = !zigZag;
             } else {
-                // Movimento exploratório com base na forma da arena
                 double proporcao = larguraArena / alturaArena;
                 if (proporcao > 1.2) {
                     setTurnRight(45);
@@ -59,22 +58,20 @@ public class Nabucodonosor extends AdvancedRobot {
                 setAhead(100);
             }
 
-            evitarParedes(); // Verifica e evita colisão com paredes
+            evitarParedes();
             execute();
         }
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
-        // Só troca de alvo se o novo inimigo estiver mais próximo
         if (!travarRadar || e.getDistance() < distanciaAlvo) {
             travarRadar = true;
             distanciaAlvo = e.getDistance();
             ultimoScan = getTime();
             alvoAtual = e.getName();
+
             out.println("📡 Alvo travado: " + alvoAtual);
 
-
-            // Calcula ângulos para canhão e radar
             double anguloAbsoluto = getHeading() + e.getBearing();
             double anguloCanhao = normalRelativeAngleDegrees(anguloAbsoluto - getGunHeading());
             double anguloRadar = normalRelativeAngleDegrees(anguloAbsoluto - getRadarHeading());
@@ -82,17 +79,17 @@ public class Nabucodonosor extends AdvancedRobot {
             setTurnRadarRight(anguloRadar);
             setTurnGunRight(anguloCanhao);
 
-            // Condições para disparo
             boolean miraAlinhada = Math.abs(anguloCanhao) < 10;
             boolean distanciaOk = distanciaAlvo <= DISTANCIA_MAXIMA_TIRO;
             boolean energiaOk = getEnergy() > 0.5;
             boolean economizarEnergia = getEnergy() < 45;
 
             if (miraAlinhada && distanciaOk && energiaOk) {
-                // Potência do tiro depende da energia atual
                 double potencia = economizarEnergia ? 1.0 : Math.min(3.0, getEnergy());
 
-                // Previsão da posição futura do inimigo
+                out.println("🔫 Disparando com potência " + potencia);
+                setColors(Color.red, Color.orange, Color.yellow); // muda cor ao atirar
+
                 double velocidadeInimigo = e.getVelocity();
                 double direcaoInimigo = Math.toRadians(e.getHeading());
                 double posXInimigo = getX() + Math.sin(Math.toRadians(e.getBearing() + getHeading())) * e.getDistance();
@@ -108,29 +105,27 @@ public class Nabucodonosor extends AdvancedRobot {
                 double ajusteCanhao = normalRelativeAngleDegrees(anguloPrevisto - getGunHeading());
 
                 setTurnGunRight(ajusteCanhao);
-                setColors(Color.red, Color.orange, Color.yellow); // muda a cor ao atirar
-                out.println("🔫 Disparando com potência " + potencia);
                 fire(potencia);
+
+                alvoX = futuroX;
+                alvoY = futuroY;
             }
         }
     }
 
     public void onHitRobot(HitRobotEvent e) {
-        // Evita colisão com robôs recuando e girando
         setBack(50);
         setTurnRight(45);
         execute();
     }
 
     public void onRobotDeath(RobotDeathEvent e) {
-        // Se o inimigo atual morreu, volta ao modo de busca
         if (e.getName().equals(alvoAtual)) {
             buscarAlvo();
         }
     }
 
     public void onHitWall(HitWallEvent e) {
-        // Evita ficar preso na parede
         evitandoParede = true;
         setBack(80);
         setTurnRight(90);
@@ -139,8 +134,7 @@ public class Nabucodonosor extends AdvancedRobot {
 
     public void onHitByBullet(HitByBulletEvent e) {
         out.println("💥 Fui atingido! Iniciando manobra evasiva...");
-        setColors(Color.blue, Color.cyan, Color.lightGray); // muda a cor ao ser atingido
-        // Reage com zigue-zague evasivo ao ser atingido
+        setColors(Color.blue, Color.cyan, Color.lightGray); // muda cor ao ser atingido
         zigZag = !zigZag;
         if (getEnergy() > 20) {
             setBack(30);
@@ -152,8 +146,30 @@ public class Nabucodonosor extends AdvancedRobot {
         execute();
     }
 
+    public void onWin(WinEvent e) {
+        out.println("🏆 Vitória! O campo de batalha é meu.");
+        setColors(Color.green, Color.white, Color.magenta); // muda cor ao vencer
+
+        // Dança da vitória
+        for (int i = 0; i < 36; i++) {
+            setTurnRight(10);
+            setTurnGunLeft(20);
+            setTurnRadarRight(30);
+            execute();
+        }
+    }
+
+    public void onPaint(Graphics2D g) {
+        // Desenha linha até o inimigo previsto
+        if (alvoX != -1 && alvoY != -1) {
+            g.setColor(Color.red);
+            g.drawLine((int) getX(), (int) getY(), (int) alvoX, (int) alvoY);
+            g.setColor(Color.pink);
+            g.drawOval((int) getX() - 250, (int) getY() - 250, 500, 500); // alcance máximo
+        }
+    }
+
     private void buscarAlvo() {
-        // Retorna ao modo de busca girando o radar continuamente
         travarRadar = false;
         alvoAtual = null;
         distanciaAlvo = Double.MAX_VALUE;
@@ -161,7 +177,6 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     private void evitarParedes() {
-        // Detecta proximidade com as bordas e faz correção de rota
         evitandoParede = false;
         if (getX() < margem) {
             setTurnRight(normalRelativeAngleDegrees(90 - getHeading()));
@@ -183,9 +198,5 @@ public class Nabucodonosor extends AdvancedRobot {
         if (evitandoParede) {
             setAhead(80);
         }
-    }
-    public void onWin(WinEvent e) {
-    out.println("🏆 Vitória! O campo de batalha é meu.");
-    setColors(Color.green, Color.white, Color.magenta); // muda a cor ao vencer
     }
 }
