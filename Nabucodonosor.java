@@ -106,6 +106,7 @@ public class Nabucodonosor extends AdvancedRobot {
                 double ajusteCanhao = normalRelativeAngleDegrees(anguloPrevisto - getGunHeading());
 
                 setTurnGunRight(ajusteCanhao);
+                setColors(Color.red, Color.orange, Color.yellow); // muda a cor ao atirar
                 fire(potencia);
             }
         }
@@ -134,6 +135,7 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
+        setColors(Color.blue, Color.cyan, Color.lightGray); // muda a cor ao ser atingido
         // Reage com zigue-zague evasivo ao ser atingido
         zigZag = !zigZag;
         if (getEnergy() > 20) {
@@ -177,5 +179,8 @@ public class Nabucodonosor extends AdvancedRobot {
         if (evitandoParede) {
             setAhead(80);
         }
-    }
+    }public void onWin(WinEvent e) {
+    setColors(Color.green, Color.white, Color.magenta); // muda a cor ao vencer
+}
+
 }
