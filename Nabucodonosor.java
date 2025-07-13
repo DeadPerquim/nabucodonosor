@@ -8,35 +8,41 @@ import static robocode.util.Utils.normalRelativeAngleDegrees;
 public class Nabucodonosor extends AdvancedRobot {
 
     // Variáveis de controle
-    private boolean travarRadar = false;
-    private double distanciaAlvo = 0;
-    private long ultimoScan = 0;
-    private String alvoAtual = null;
-    private double larguraArena;
-    private double alturaArena;
-    private double margem = 60;
-    private boolean evitandoParede = false;
-    private final double DISTANCIA_MAXIMA_TIRO = 500;
-    private boolean zigZag = false;
-    private double alvoX = -1, alvoY = -1;
-    private long tempoInicio;
+    private boolean travarRadar = false; // Indica se o radar está travado em um alvo
+    private double distanciaAlvo = 0; // Distância atual do inimigo travado
+    private long ultimoScan = 0; // Último tick em que o inimigo foi escaneado
+    private String alvoAtual = null; // Nome do inimigo atual
+    private double larguraArena; // Largura da arena
+    private double alturaArena; // Altura da arena
+    private double margem = 60; // Margem de segurança das paredes
+    private boolean evitandoParede = false; // Indica se o robô está evitando parede
+    private final double DISTANCIA_MAXIMA_TIRO = 500; // Distância máxima para tentar disparar
+    private boolean zigZag = false; // Controla movimento em zigue-zague
+    private double alvoX = -1, alvoY = -1; // Posição prevista do inimigo
+    private long tempoInicio; // Tick inicial da partida
 
     public void run() {
+        // Define as cores iniciais do robô
         setColors(Color.black, Color.red, Color.orange);
+        // Desacopla a rotação do corpo, canhão e radar
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
 
+        // Captura as dimensões da arena
         larguraArena = getBattleFieldWidth();
         alturaArena = getBattleFieldHeight();
         tempoInicio = getTime();
 
+        // Inicia radar em modo busca
         buscarAlvo();
 
         while (true) {
+            // Se perdeu o inimigo, volta para busca
             if (travarRadar && (getTime() - ultimoScan > 30)) {
                 buscarAlvo();
             }
 
+            // Movimento de caça
             if (travarRadar) {
                 double angulo = normalRelativeAngleDegrees(90 + (distanciaAlvo / 15));
                 if (zigZag) {
@@ -47,6 +53,7 @@ public class Nabucodonosor extends AdvancedRobot {
                 setAhead(100);
                 zigZag = !zigZag;
             } else {
+                // Movimento de busca adaptado ao formato da arena
                 double proporcao = larguraArena / alturaArena;
                 if (proporcao > 1.2) {
                     setTurnRight(45);
@@ -64,6 +71,7 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onScannedRobot(ScannedRobotEvent e) {
+        // Decide travar novo alvo se ainda não travado ou se está mais próximo
         if (!travarRadar || e.getDistance() < distanciaAlvo) {
             travarRadar = true;
             distanciaAlvo = e.getDistance();
@@ -72,6 +80,7 @@ public class Nabucodonosor extends AdvancedRobot {
 
             out.println("📡 Alvo travado: " + alvoAtual);
 
+            // Calcula os ângulos de ajuste
             double anguloAbsoluto = getHeading() + e.getBearing();
             double anguloCanhao = normalRelativeAngleDegrees(anguloAbsoluto - getGunHeading());
             double anguloRadar = normalRelativeAngleDegrees(anguloAbsoluto - getRadarHeading());
@@ -79,6 +88,7 @@ public class Nabucodonosor extends AdvancedRobot {
             setTurnRadarRight(anguloRadar);
             setTurnGunRight(anguloCanhao);
 
+            // Regras para decidir disparo
             boolean miraAlinhada = Math.abs(anguloCanhao) < 10;
             boolean distanciaOk = distanciaAlvo <= DISTANCIA_MAXIMA_TIRO;
             boolean energiaOk = getEnergy() > 0.5;
@@ -90,6 +100,7 @@ public class Nabucodonosor extends AdvancedRobot {
                 out.println("🔫 Disparando com potência " + potencia);
                 setColors(Color.red, Color.orange, Color.yellow); // muda cor ao atirar
 
+                // Previsão da posição futura do inimigo
                 double velocidadeInimigo = e.getVelocity();
                 double direcaoInimigo = Math.toRadians(e.getHeading());
                 double posXInimigo = getX() + Math.sin(Math.toRadians(e.getBearing() + getHeading())) * e.getDistance();
@@ -114,18 +125,21 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onHitRobot(HitRobotEvent e) {
+        // Recuar ao colidir com outro robô
         setBack(50);
         setTurnRight(45);
         execute();
     }
 
     public void onRobotDeath(RobotDeathEvent e) {
+        // Retorna para modo busca caso inimigo morra
         if (e.getName().equals(alvoAtual)) {
             buscarAlvo();
         }
     }
 
     public void onHitWall(HitWallEvent e) {
+        // Ação ao bater na parede
         evitandoParede = true;
         setBack(80);
         setTurnRight(90);
@@ -133,8 +147,11 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onHitByBullet(HitByBulletEvent e) {
+        // Mensagem e cor ao ser atingido
         out.println("💥 Fui atingido! Iniciando manobra evasiva...");
-        setColors(Color.blue, Color.cyan, Color.lightGray); // muda cor ao ser atingido
+        setColors(Color.blue, Color.cyan, Color.lightGray);
+
+        // Movimento evasivo com zigue-zague
         zigZag = !zigZag;
         if (getEnergy() > 20) {
             setBack(30);
@@ -147,10 +164,11 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     public void onWin(WinEvent e) {
+        // Mensagem e cor ao vencer
         out.println("🏆 Vitória! O campo de batalha é meu.");
-        setColors(Color.green, Color.white, Color.magenta); // muda cor ao vencer
+        setColors(Color.green, Color.white, Color.magenta);
 
-        // Dança da vitória
+        // Dança da vitória com rotação sincronizada
         for (int i = 0; i < 36; i++) {
             setTurnRight(10);
             setTurnGunLeft(20);
@@ -165,11 +183,12 @@ public class Nabucodonosor extends AdvancedRobot {
             g.setColor(Color.red);
             g.drawLine((int) getX(), (int) getY(), (int) alvoX, (int) alvoY);
             g.setColor(Color.pink);
-            g.drawOval((int) getX() - 250, (int) getY() - 250, 500, 500); // alcance máximo
+            g.drawOval((int) getX() - 250, (int) getY() - 250, 500, 500); // círculo de alcance
         }
     }
 
     private void buscarAlvo() {
+        // Reinicia o radar para busca
         travarRadar = false;
         alvoAtual = null;
         distanciaAlvo = Double.MAX_VALUE;
@@ -177,6 +196,7 @@ public class Nabucodonosor extends AdvancedRobot {
     }
 
     private void evitarParedes() {
+        // Detecta proximidade com as bordas e ajusta rota
         evitandoParede = false;
         if (getX() < margem) {
             setTurnRight(normalRelativeAngleDegrees(90 - getHeading()));
